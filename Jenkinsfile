@@ -3,12 +3,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/dayacode12/testforge-ai.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t testforge-ai .'
