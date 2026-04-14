@@ -7,12 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/dayacode12/testforge-ai.git'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh '''
