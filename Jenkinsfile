@@ -1,38 +1,11 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-    }
-
     stages {
 
-        stage('Install Dependencies') {
+        stage('Checkout Code') {
             steps {
-                sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install fastapi uvicorn pydantic pytest
-                '''
-            }
-        }
-
-        stage('Run App') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-                sleep 5
-                '''
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh '''
-                . venv/bin/activate
-                pytest || true
-                '''
+                git 'https://github.com/dayacode12/testforge-ai.git'
             }
         }
 
@@ -40,6 +13,21 @@ pipeline {
             steps {
                 sh 'docker build -t testforge-ai .'
             }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                docker rm -f testforge-container || true
+                docker run -d -p 8000:8000 --name testforge-container testforge-ai
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline execution completed."
         }
     }
 }
