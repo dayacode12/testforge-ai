@@ -1,20 +1,24 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "testforge-ai"
+        CONTAINER_NAME = "testforge-container"
+    }
+
     stages {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                docker build -t testforge-ai:latest .
-                '''
+                sh 'docker build -t $IMAGE_NAME:latest .'
             }
         }
 
         stage('Stop Existing Container') {
             steps {
                 sh '''
-                docker rm -f testforge-container || true
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
                 '''
             }
         }
@@ -22,10 +26,10 @@ pipeline {
         stage('Run Container') {
             steps {
                 sh '''
-                docker run -d \
-                --name testforge-container \
-                -p 8000:8000 \
-                testforge-ai:latest
+                docker run -d --name $CONTAINER_NAME \
+                --network shared-network \
+                -p 8002:8000 \
+                $IMAGE_NAME:latest
                 '''
             }
         }
@@ -34,7 +38,21 @@ pipeline {
             steps {
                 sh '''
                 sleep 5
-                curl -f http://localhost:8000/docs || exit 1
+                curl http://$CONTAINER_NAME:8000/health
+                '''
+            }
+        }
+
+        stage('Test TinyLlama') {
+            steps {
+                sh '''
+                response=$(curl -s http://$CONTAINER_NAME:8000/generate)
+                echo $response
+
+                if [[ "$response" != *"response"* ]]; then
+                  echo "LLM response failed"
+                  exit 1
+                fi
                 '''
             }
         }
@@ -42,12 +60,11 @@ pipeline {
 
     post {
         success {
-            echo "✅ TestForge AI pipeline deployed successfully"
+            echo '✅ Pipeline passed - AI system working'
         }
-
         failure {
-            echo "❌ Pipeline failed - check logs"
-            sh 'docker logs testforge-container || true'
+            echo '❌ Pipeline failed - check logs'
+            sh 'docker logs $CONTAINER_NAME || true'
         }
     }
 }
