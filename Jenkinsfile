@@ -1,57 +1,30 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "testforge-ai"
-        CONTAINER_NAME = "testforge-container"
-    }
-
     stages {
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME:latest .'
-            }
-        }
-
-        stage('Stop Existing Container') {
+        stage('Check API Health') {
             steps {
                 sh '''
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
+                echo "Checking FastAPI health..."
+                curl -s http://test-awesome:8000/health
                 '''
             }
         }
 
-        stage('Run Container') {
+        stage('Test TinyLlama via API') {
             steps {
                 sh '''
-                docker run -d --name $CONTAINER_NAME \
-                --network shared-network \
-                -p 8002:8000 \
-                $IMAGE_NAME:latest
-                '''
-            }
-        }
+                echo "Testing TinyLlama response..."
 
-        stage('Health Check') {
-            steps {
-                sh '''
-                sleep 5
-                curl http://$CONTAINER_NAME:8000/health
-                '''
-            }
-        }
+                response=$(curl -s http://test-awesome:8000/generate)
 
-        stage('Test TinyLlama') {
-            steps {
-                sh '''
-                response=$(curl -s http://$CONTAINER_NAME:8000/generate)
+                echo "LLM Response:"
                 echo $response
 
                 if [[ "$response" != *"response"* ]]; then
-                  echo "LLM response failed"
-                  exit 1
+                    echo "❌ TinyLlama not responding correctly"
+                    exit 1
                 fi
                 '''
             }
@@ -60,11 +33,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline passed - AI system working'
+            echo '✅ AI pipeline working perfectly'
         }
         failure {
-            echo '❌ Pipeline failed - check logs'
-            sh 'docker logs $CONTAINER_NAME || true'
+            echo '❌ Something broke — investigate logs'
         }
     }
 }
