@@ -1,0 +1,147 @@
+# JENKINS PIPELINE SETUP - STEP BY STEP
+
+## ✅ All Services Running
+- Jenkins: http://localhost:8080 (8080->8080)
+- TestForge-AI: http://localhost:8001 (8001->8000)
+- Ollama: http://localhost:11434 (11434->11434)
+- Docker: Available on shared-network
+
+---
+
+## CREATE JENKINS JOB (Do This in Browser)
+
+### Step 1: Go to Jenkins Dashboard
+```
+http://localhost:8080
+```
+- If prompted, login with:
+  - Username: `admin`
+  - Password: `00954f6c9da94df2807744e56fec2e7f`
+
+### Step 2: Create New Item
+1. Click **New Item** (or "Create a job") on the left sidebar
+2. Enter Job name: `testforge-ai-pipeline`
+3. Select **Pipeline** (not Freestyle)
+4. Click **OK**
+
+### Step 3: Configure the Job (in the job config page)
+
+#### Section: General
+- Description: (paste this)
+  ```
+  TestForge-AI CI/CD Pipeline with Ollama Error Analysis
+  Automatically runs tests, captures errors, and sends to Ollama AI for analysis
+  ```
+
+#### Section: Pipeline (scroll to bottom)
+- **Definition:** Select: **Pipeline script from SCM**
+- **SCM:** Select: **Git**
+
+#### Git Configuration:
+- **Repository URL:** `https://github.com/dayacode12/testforge-ai.git`
+- **Credentials:** Leave empty (public repo)
+- **Branch:** `*/master`
+- **Script Path:** `Jenkinsfile`
+
+### Step 4: Save
+Click **Save** button at the bottom
+
+---
+
+## RUN THE PIPELINE
+
+### Step 5: Build
+1. You'll see the job page
+2. Click **Build Now** (or "Build" on the left)
+3. Wait for build to start
+
+### Step 6: Watch Progress
+1. Click on the build number (e.g., **#1** under "Build History")
+2. Click **Console Output** to see live logs
+3. Watch for:
+   - ✓ Git checkout
+   - ✓ Docker build
+   - ✓ Tests running (will show 2 errors intentionally)
+   - ✓ Ollama AI analysis with fixes
+   - ✓ TestForge-AI test case generation
+
+---
+
+## WHAT YOU'LL SEE
+
+### Build Log Example:
+```
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/jenkins_home/workspace/testforge-ai-pipeline
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] checkout
+Cloning the remote Git repository
+Cloning with depth: 1 to minimize network traffic
+...
+[Pipeline] stage
+[Pipeline] { (Build Docker Image)
+[Pipeline] sh
++ docker build -t testforge-ai:latest .
+...
+[Pipeline] stage
+[Pipeline] { (Run Tests)
+❌ ERROR: No module named 'utils'
+❌ ERROR: Cannot parse response - string indices must be integers
+✓ Database connection passed
+
+[Pipeline] stage
+[Pipeline] { (Analyze Errors with Ollama)
+📤 Sending to Ollama...
+🤖 OLLAMA ANALYSIS:
+Root cause: Missing utils module...
+Specific fix: Import the module correctly...
+```
+
+---
+
+## TROUBLESHOOTING
+
+### If "docker: command not found"
+- Jenkins container needs Docker CLI
+- The containers should still communicate
+- If stuck, restart Jenkins: `docker restart jenkins`
+
+### If "Connection refused to ollama:11434"
+- Check network: `docker network inspect shared-network`
+- Make sure all 3 containers are connected
+- Verify: `docker ps` shows all three running
+
+### If build shows "cannot find Jenkinsfile"
+- Make sure your changes are committed and pushed to GitHub
+- The Jenkinsfile must be in the root of the repo
+
+### If "Git connection timeout"
+- Check internet connection
+- Wait a bit and retry
+
+---
+
+## NEXT STEPS (After First Successful Run)
+
+1. **Set up GitHub Webhook** (auto-trigger on push)
+2. **Configure email notifications** on failure
+3. **Add more test cases** to catch more errors
+4. **Integrate with Slack** to get notifications
+5. **Create a test dashboard** to track failures over time
+
+---
+
+## FILES CREATED
+
+- `Jenkinsfile` - Pipeline definition (what jobs run)
+- `build_script.py` - Test suite with intentional errors
+- `full_pipeline.py` - Orchestrates error analysis
+- `jenkins-job-config.xml` - Job configuration (reference)
+- `jenkins_readiness_check.py` - Verification script
+
+---
+
+You're all set! Go to http://localhost:8080 and create the job now.
