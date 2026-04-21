@@ -10,6 +10,10 @@ pipeline {
         TESTFORGE_URL = 'http://testforge-test:8000'
     }
     
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -65,9 +69,9 @@ pipeline {
         stage('Analyze Errors with Ollama') {
             steps {
                 script {
-                    echo "Sending test results to Ollama for AI analysis..."
+                    echo "Sending test results to Ollama for AI analysis (this may take 5-10 minutes)..."
                     sh '''
-                        docker run --rm \
+                        timeout 600 docker run --rm \
                             --network ${SHARED_NETWORK} \
                             -v ${WORKSPACE}:/app \
                             ${DOCKER_IMAGE} \
@@ -85,7 +89,7 @@ pipeline {
                 script {
                     echo "Generating test cases via TestForge-AI..."
                     sh '''
-                        curl -s -X POST ${TESTFORGE_URL}/generate-tests \
+                        timeout 300 curl -s -X POST ${TESTFORGE_URL}/generate-tests \
                             -H "Content-Type: application/json" \
                             -d '{"feature_description": "User authentication with email validation and MFA support"}' \
                             -w "\n" || echo "TestForge-AI not available"
