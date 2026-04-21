@@ -8,7 +8,7 @@ def send_logs_to_ai(log_text: str):
     """
     Sends Jenkins logs to TestForge AI for analysis
     """
-    try:
+    try:    
         response = requests.post(
             ANALYZE_URL,
             data=log_text,

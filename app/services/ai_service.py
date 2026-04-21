@@ -2,7 +2,11 @@ import requests
 import json
 from app.config import OLLAMA_URL
 
-
+def analyze_error(log_text: str):
+    return {
+        "analysis": "Mock analysis (AI integration pending)",
+        "input": log_text
+    }
 def safe_extract_json(raw_output: str):
     """
     Safely extracts JSON from LLM response
@@ -59,3 +63,4 @@ Return ONLY valid JSON in this format:
 
     except Exception as e:
         return [{"error": str(e)}]
+
