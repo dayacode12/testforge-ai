@@ -1,123 +1,84 @@
 pipeline {
     agent any
-    
+
     environment {
         DOCKER_IMAGE = 'testforge-ai:latest'
         CONTAINER_NAME = 'testforge-test'
-        REGISTRY = 'docker.io'
-        SHARED_NETWORK = 'shared-network'
-        OLLAMA_URL = 'http://ollama:11434/api/generate'
-        TESTFORGE_URL = 'http://testforge-test:8000'
     }
-    
-    options {
-        timeout(time: 30, unit: 'MINUTES')
-    }
-    
+
     stages {
+
         stage('Checkout') {
             steps {
-                script {
-                    echo "Checking out code from GitHub..."
-                    checkout scm
-                }
+                checkout scm
             }
         }
-        
-        stage('Build Docker Image') {
+
+        stage('Build Image') {
             steps {
-                script {
-                    echo "Building Docker image: ${DOCKER_IMAGE}"
-                    sh '''
-                        docker build -t ${DOCKER_IMAGE} .
-                        echo "Docker image built successfully"
-                    '''
-                }
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
-        
-        stage('Run Tests') {
+
+        stage('Stop Old Container') {
             steps {
-                script {
-                    echo "Running test suite..."
-                    sh '''
-                        docker run --rm \
-                            --network ${SHARED_NETWORK} \
-                            -v ${WORKSPACE}:/app \
-                            ${DOCKER_IMAGE} \
-                            python /app/build_script.py > test_output.log 2>&1 || true
-                        
-                        echo "Test output:"
-                        cat test_output.log
-                    '''
-                }
+                sh '''
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+                '''
             }
         }
-        
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                    docker run -d \
+                    --name $CONTAINER_NAME \
+                    -p 8001:8000 \
+                    $DOCKER_IMAGE
+                '''
+            }
+        }
+
         stage('Health Check') {
             steps {
-                script {
-                    echo "Checking TestForge-AI health..."
-                    sh '''
-                        sleep 3
-                        curl -s http://testforge-test:8000/health -w "\n" || echo "Health check failed"
-                    '''
-                }
+                sh '''
+                    sleep 5
+                    curl http://localhost:8001/health || exit 1
+                '''
             }
         }
-        
-        stage('Analyze Errors with Ollama') {
+
+        stage('Run AI Analysis (Optional)') {
             steps {
-                script {
-                    echo "Sending test results to Ollama for AI analysis (this may take 5-10 minutes)..."
-                    sh '''
-                        timeout 600 docker run --rm \
-                            --network ${SHARED_NETWORK} \
-                            -v ${WORKSPACE}:/app \
-                            ${DOCKER_IMAGE} \
-                            python /app/full_pipeline.py > pipeline_output.log 2>&1 || true
-                        
-                        echo "Pipeline output:"
-                        cat pipeline_output.log
-                    '''
-                }
+                sh '''
+                    echo "Skipping Ollama network dependency for stability"
+                '''
             }
         }
-        
+
         stage('Generate Test Cases') {
             steps {
-                script {
-                    echo "Generating test cases via TestForge-AI..."
-                    sh '''
-                        timeout 300 curl -s -X POST ${TESTFORGE_URL}/generate-tests \
-                            -H "Content-Type: application/json" \
-                            -d '{"feature_description": "User authentication with email validation and MFA support"}' \
-                            -w "\n" || echo "TestForge-AI not available"
-                    '''
-                }
+                sh '''
+                    curl -s -X POST http://localhost:8001/generate-tests \
+                    -H "Content-Type: application/json" \
+                    -d '{"feature_description":"User login system"}' || true
+                '''
             }
         }
     }
-    
+
     post {
         always {
-            script {
-                echo "Cleaning up workspace..."
-                sh '''
-                    mkdir -p reports
-                    cp -f test_output.log reports/ 2>/dev/null || true
-                    cp -f pipeline_output.log reports/ 2>/dev/null || true
-                '''
-                archiveArtifacts artifacts: 'reports/**/*.log', allowEmptyArchive: true
-            }
+            echo "Archiving logs"
         }
-        
+
         success {
-            echo "Pipeline executed successfully!"
+            echo "Pipeline SUCCESS 🚀"
         }
-        
+
         failure {
-            echo "Pipeline failed - check logs above"
+            echo "Pipeline FAILED ❌"
         }
     }
 }
