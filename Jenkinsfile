@@ -40,14 +40,22 @@ pipeline {
             }
         }
 
-        stage('Health Check') {
-            steps {
-                sh '''
-                    sleep 5
-                    curl http://localhost:8001/health || exit 1
-                '''
-            }
-        }
+      stage('Health Check') {
+    steps {
+        sh '''
+            echo "Waiting for service to stabilize..."
+
+            for i in {1..10}; do
+                curl -s http://localhost:8001/health && exit 0
+                echo "Retry $i/10..."
+                sleep 2
+            done
+
+            echo "Health check failed"
+            exit 1
+        '''
+    }
+}
 
         stage('Run AI Analysis (Optional)') {
             steps {
