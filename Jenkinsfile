@@ -85,8 +85,11 @@ pipeline {
             echo "Pipeline SUCCESS 🚀"
         }
 
-        failure {
-            echo "Pipeline FAILED ❌"
-        }
+         failure {
+        sh '''
+            echo "==== CONTAINER LOGS ===="
+            docker logs testforge-test || true
+        '''
+    }
     }
 }
