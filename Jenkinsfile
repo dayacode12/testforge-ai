@@ -40,13 +40,13 @@ pipeline {
             }
         }
 
-      stage('Health Check') {
+stage('Health Check') {
     steps {
         sh '''
-            echo "Waiting for service to stabilize..."
+            echo "Waiting for service..."
 
             for i in {1..10}; do
-                curl -s curl http://testforge-test:8000/health && exit 0
+                curl -s http://testforge-test:8000/health && exit 0
                 echo "Retry $i/10..."
                 sleep 2
             done
