@@ -46,7 +46,7 @@ stage('Health Check') {
             echo "Waiting for service..."
 
             for i in {1..10}; do
-                curl -s http://testforge-test:8000/health && exit 0
+                curl -s http://localhost:8001/health && exit 0
                 echo "Retry $i/10..."
                 sleep 2
             done
