@@ -46,7 +46,7 @@ pipeline {
             echo "Waiting for service to stabilize..."
 
             for i in {1..10}; do
-                curl -s http://localhost:8001/health && exit 0
+                curl -s curl http://testforge-test:8000/health && exit 0
                 echo "Retry $i/10..."
                 sleep 2
             done
