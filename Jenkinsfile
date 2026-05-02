@@ -68,9 +68,9 @@ stage('Health Check') {
         stage('Generate Test Cases') {
             steps {
                 sh '''
-                    curl -s -X POST http://testforge-test:8000/generate-tests \
-                    -H "Content-Type: application/json" \
-                    -d '{"feature_description":"User login system"}' || true
+                    curl -s -X POST http://192.168.61.152:8000/generate-tests \
+-H "Content-Type: application/json" \
+-d '{"feature_description":"User login system"}' || true
                 '''
             }
         }
